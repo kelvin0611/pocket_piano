@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=4,user-scalable=yes,viewport-fit=cover">
+<title>傻肥嘅生日 · Mary Land</title>
+<style>
+  /* ---------- 基礎：禁止長按選取／拖圖／彈 callout（手機必備）---------- */
+  *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;
+    -webkit-user-drag:none;-webkit-tap-highlight-color:transparent;box-sizing:border-box;}
+  html,body{margin:0;background:#1b1420;overflow:hidden;height:100%;overscroll-behavior:none;
+    font-family:-apple-system,"PingFang HK","Microsoft JhengHei",sans-serif;}
+  input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;}
+  img,canvas{-webkit-user-drag:none;user-drag:none;pointer-events:none;}
+  #app{position:fixed;inset:0;overflow:hidden;}
+  /* ---------- 機殼：只有一個框（Tamagotchi 蛋形機身＋鎖匙扣）---------- */
+  #shell{position:absolute;left:0;top:0;transform-origin:top left;touch-action:manipulation;
+    width:450px;height:1011px;                 /* 內容：屏幕 430 + 掣區 246 */
+    padding:34px 34px 58px;box-sizing:content-box;
+    background:linear-gradient(160deg,#FFEAF2 0%,#FBD3E2 45%,#F3B9D0 100%);
+    border-radius:72px 72px 92px 92px/80px 80px 104px 104px;
+    box-shadow:
+      inset 0 -18px 0 rgba(122,74,98,.10),
+      inset 0 10px 0 rgba(255,255,255,.55),
+      0 22px 44px rgba(0,0,0,.45);}
+  #shell::before{                       /* 鎖匙扣圈 */
+    content:'';position:absolute;top:-40px;left:100px;width:58px;height:58px;
+    border:11px solid #E6AFC7;border-radius:50%;
+    box-shadow:inset 0 3px 0 rgba(255,255,255,.5),0 3px 0 rgba(122,74,98,.18);}
+  #shell::after{                        /* 揚聲器窿（掣區下面嘅空白位）*/
+    content:'';position:absolute;bottom:26px;left:50%;transform:translateX(-50%);
+    width:120px;height:14px;
+    background-image:radial-gradient(circle,#C98CA6 3px,transparent 4px);
+    background-size:24px 14px;opacity:.75;}
+  /* 屏幕：縮到 338×600，只剩一條幼黑邊（唔再係厚邊框）*/
+  #screen{position:relative;margin:0 auto;width:430px;height:765px;overflow:hidden;
+    border-radius:20px;box-shadow:inset 0 0 0 3px rgba(74,46,56,.9);background:#000;}
+  /* 入面仍然係 540×960 邏輯畫布，整體等比縮到 338 闊 */
+  #stage{position:absolute;left:0;top:0;width:540px;height:960px;
+    transform:scale(.796296);transform-origin:top left;overflow:hidden;background:#000;}
+  canvas{display:block;width:540px;height:960px;image-rendering:pixelated;
+    image-rendering:-moz-crisp-edges;image-rendering:crisp-edges;}
+  #glare{position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(118deg,rgba(255,255,255,.18) 0%,rgba(255,255,255,0) 34%);}
+  /* ---------- 機殼貼紙 ---------- */
+  /* 剪影貼紙：跟角色形狀，8 方向白邊（似 die-cut 貼紙）＋柔和投影 */
+  .sticker{position:absolute;background-repeat:no-repeat;background-size:contain;background-position:center bottom;
+    filter:drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff)
+           drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff)
+           drop-shadow(2px 2px 0 #fff) drop-shadow(-2px -2px 0 #fff)
+           drop-shadow(2px -2px 0 #fff) drop-shadow(-2px 2px 0 #fff)
+           drop-shadow(0 4px 5px rgba(122,74,98,.30));}
+  .sticker{pointer-events:none;}
+  /* 中間貼紙：之字形錯開，唔再一條直線疊落嚟 */
+  #stickerPiano{left:292px;bottom:12px;width:80px;height:88px;transform:rotate(-8deg);
+    background-image:url(assets/portraits/pianob_face_r1c1.png);}
+  #stickerMonkey{left:8px;top:-24px;width:70px;height:80px;transform:rotate(6deg);
+    background-image:url(assets/portraits/monkey_face.png);}   /* 獼猴貼紙（出好圖放落 assets/portraits/monkey_face.png 就自動出現） */
+  #stickerP2{right:80px;top:-16px;width:58px;height:68px;transform:rotate(-5deg);
+    background-image:url(assets/portraits/pianob_face_r3c1.png);}
+  #stickerP3{right:6px;top:-20px;width:64px;height:74px;transform:rotate(-6deg);
+    background-image:url(assets/portraits/pianob_face_r1c3.png);}
+  #stickerP4{left:300px;bottom:138px;width:64px;height:74px;transform:rotate(8deg);
+    background-image:url(assets/portraits/piano_face_2.png);}
+  #stickerP5{left:246px;bottom:84px;width:54px;height:62px;transform:rotate(-7deg);
+    background-image:url(assets/portraits/piano_face_4.png);}
+  #stickerHeart{left:248px;bottom:14px;width:44px;height:44px;transform:rotate(9deg);opacity:.92;
+    background-image:url(assets/ui/FX2_r2c2.png);}
+  #stickerHeart2{left:256px;bottom:196px;width:38px;height:38px;transform:rotate(-12deg);opacity:.85;
+    background-image:url(assets/ui/FX2_r2c1.png);}
+  #brand{position:absolute;left:0;right:0;top:6px;text-align:center;
+    color:#9C6C84;font-size:14px;letter-spacing:6px;font-weight:600;}
+  /* ---------- 掣：搬出畫布，獨立放大 ---------- */
+  .btn{position:absolute;background-repeat:no-repeat;background-size:contain;
+    background-position:center;opacity:.94;touch-action:none;}
+  .hit{position:absolute;touch-action:none;}
+  #dpadwrap{position:absolute;left:14px;bottom:14px;width:220px;height:220px;}
+  /* ---------- 搖桿（手機好揸過十字鍵）---------- */
+  #stick{position:absolute;inset:0;box-sizing:border-box;border-radius:50%;
+    background:#F3CBDD;border:8px solid #4A2E38;touch-action:none;
+    box-shadow:inset 0 -7px 0 rgba(74,46,56,.18), inset 0 7px 0 rgba(255,255,255,.45);}
+  #stick::after{content:'';position:absolute;left:50%;top:50%;width:152px;height:152px;
+    margin:-76px 0 0 -76px;border-radius:50%;border:4px dashed rgba(74,46,56,.20);}
+  #knob{position:absolute;left:56px;top:56px;width:108px;height:108px;box-sizing:border-box;
+    border-radius:50%;background:#F7A6BE;border:7px solid #4A2E38;z-index:2;touch-action:none;
+    box-shadow:inset 0 7px 0 rgba(255,255,255,.5), inset 0 -7px 0 rgba(74,46,56,.18);}
+  #knob.pressed{filter:brightness(1.1)}
+  #bA{right:16px;bottom:10px;width:112px;height:112px;background-image:url(assets/ui/btn_a.png);}
+  #bB{right:16px;bottom:130px;width:112px;height:112px;background-image:url(assets/ui/btn_b.png);}
+  .pressed{filter:brightness(1.25)}
+  body.in-dlg .btn{opacity:.22}
+  body.in-dlg #bA{opacity:.8}
+  #hint{position:absolute;left:0;right:0;top:10px;text-align:center;color:#f7d9e6;
+    font-size:17px;letter-spacing:.5px;text-shadow:0 2px 0 #6d3350;pointer-events:none;
+    animation:hintfade .8s ease 9s forwards;}
+  @keyframes hintfade{to{opacity:0}}
+  body.in-dlg #hint,body.in-menu #hint,body.in-room #hint,body.in-title #hint{opacity:0}
+  body.in-trans .btn,body.in-trans .hit,body.in-trans #hint{opacity:0;pointer-events:none}
+  body.in-end #hint,body.in-end #bB{opacity:0;pointer-events:none}   /* 結局字幕／合照：只留 A */
+  body.in-end #stick{opacity:.35}
+  body.in-trans.cover-wait #bA,body.in-trans.cover-wait .hit{opacity:.95;pointer-events:auto}
+  body.in-title #brand{opacity:0}                 /* 封面已經有 logo，機殼頂唔重複 */
+  body.in-title #dpadwrap,body.in-title #bB{opacity:0;pointer-events:none}
+  body.in-title #bA{opacity:.95}
+  body.in-title .hit{pointer-events:none}
+  body.in-menu #stick{opacity:.7}
+  body.in-menu #bB{opacity:.85}
+  body.in-menu .hit{pointer-events:auto}
+  /* ---------- 打字／送禮 UI（字體放大，避免 iOS 自動 zoom）---------- */
+  #nameui{display:none;position:absolute;left:0;right:0;top:452px;text-align:center;}
+  body.in-title-name #nameui{display:block}
+  #nameui .q{color:#4A2E38;font-size:30px;margin-bottom:4px;}
+  #nameui .note{color:#8A5E74;font-size:17px;margin-bottom:16px;}
+  #nameIn{width:330px;padding:16px;font-size:34px;text-align:center;color:#4A2E38;
+    background:#FFF6FA;border:4px solid #4A2E38;border-radius:18px;outline:none;font-family:inherit;}
+  #startBtn{margin-top:22px;display:inline-block;padding:14px 44px;font-size:30px;
+    font-family:inherit;color:#4A2E38;background:#FBCFD6;border:4px solid #4A2E38;
+    border-radius:20px;font-weight:700;letter-spacing:1px;}
+  #startBtn:active{transform:translateY(2px)}
+  #giftui{display:none;position:absolute;left:50%;transform:translateX(-50%);top:326px;width:452px;
+    padding:26px 22px 20px;text-align:center;background:rgba(255,246,250,0.97);
+    border:5px solid #4A2E38;border-radius:26px;box-shadow:0 8px 0 rgba(122,74,98,.22);}
+  body.in-gift #giftui{display:block}
+  body.in-gift #hint,body.in-gift .btn,body.in-gift .hit{opacity:0;pointer-events:none}
+  #giftui .q{color:#4A2E38;font-size:30px;margin-bottom:18px;text-shadow:0 1px 0 #fff;}
+  #giftIn{width:400px;height:110px;padding:16px;font-size:30px;color:#4A2E38;
+    background:#FFF6FA;border:4px solid #4A2E38;border-radius:18px;outline:none;
+    font-family:inherit;resize:none;line-height:1.4;}
+  #sendBtn{margin-top:20px;display:inline-block;padding:16px 44px;font-size:30px;
+    font-family:inherit;color:#4A2E38;background:#FBCFD6;border:4px solid #4A2E38;
+    border-radius:22px;font-weight:700;letter-spacing:1px;}
+  #sendBtn:active{transform:translateY(2px)}
+  #giftui .skip{margin-top:18px;color:#9C6C84;font-size:22px;text-decoration:underline;}
+  #giftui .skip.restart{margin-top:10px;color:#8A5E74;font-size:19px;}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="shell">
+  <div id="screen">
+    <div id="stage">
+      <canvas id="c" width="540" height="960"></canvas>
+      <div id="glare"></div>
+      <div id="hint">A 傾偈 · B 選單 · 搖桿行路</div>
+      <div id="nameui">
+        <div class="q">妳嘅名係…？</div>
+        <div class="note">（之後所有人都會咁叫妳）</div>
+        <input id="nameIn" maxlength="6" placeholder="打妳個名" autocomplete="off" spellcheck="false">
+        <button id="startBtn">START ♥</button>
+      </div>
+      <div id="giftui">
+        <div class="q">妳想要咩禮物？</div>
+        <textarea id="giftIn" rows="3" placeholder="想講咩都得～（會直接 send 畀傻豬）"></textarea>
+        <button id="sendBtn">Send 畀傻豬 ♥</button>
+        <div class="skip" id="giftSkip">唔寫住，多謝你</div>
+        <div class="skip restart" id="giftRestart">↺ 由頭再玩一次（清記錄）</div>
+      </div>
+    </div>
+  </div>
+  <!-- 掣：獨立於畫布，可以放大 -->
+  <div id="dpadwrap">
+    <div id="stick"><div id="knob"></div></div>
+  </div>
+  <div class="btn" id="bA"></div>
+  <div class="btn" id="bB"></div>
+  <div class="sticker" id="stickerMonkey"></div>
+  <div class="sticker" id="stickerP2"></div>
+  <div class="sticker" id="stickerP3"></div>
+  <div class="sticker" id="stickerP4"></div>
+  <div class="sticker" id="stickerP5"></div>
+  <div class="sticker" id="stickerHeart"></div>
+  <div class="sticker" id="stickerHeart2"></div>
+  <div class="sticker" id="stickerPiano"></div>
+  <div id="brand">POCKET&nbsp;PIANO</div>
+</div>
+</div>
+<script src="data.js"></script>
+<script src="script.js"></script>
+<script src="game.js"></script>
+<script>
+  (function(){                           // 整個機殼縮放到視窗（用 visualViewport 先準）
+    const sh = document.getElementById('shell');
+    function fit(){
+      const VWp = (window.visualViewport && visualViewport.width) ? visualViewport.width : innerWidth;
+      const VHp = (window.visualViewport && visualViewport.height) ? visualViewport.height : innerHeight;
+      const prev = sh.style.transform;
+      sh.style.transform = 'none';
+      const r = sh.getBoundingClientRect();
+      const W0 = 518, H0 = 1103;               // 設計大細（450+68, 1011+92）
+      let w = Math.round(r.width) || W0;
+      let h = Math.round(r.height) || H0;
+      if (Math.abs(w - W0) > 24) w = W0;
+      if (Math.abs(h - H0) > 24) h = H0;
+      const TOP = 46;                          // 鎖匙扣／頂部貼紙凸出機身嘅高度，唔好畀視窗切走
+      const s = Math.min(VWp / w, VHp / (h + TOP));
+      sh.style.transform = 'scale(' + s + ')';
+      sh.style.left = Math.max(0, (VWp - w * s) / 2) + 'px';
+      sh.style.top = (Math.max(0, (VHp - (h + TOP) * s) / 2) + TOP * s) + 'px';
+      if (prev === undefined) sh.style.transform = 'scale(' + s + ')';
+      window.__fitS = { s: s, w: w, h: h };
+    }
+    addEventListener('resize', fit);
+    addEventListener('orientationchange', () => setTimeout(fit, 120));
+    if (window.visualViewport) visualViewport.addEventListener('resize', fit);
+    window.addEventListener('load', () => { fit(); setTimeout(fit, 250); });
+    document.addEventListener('DOMContentLoaded', fit);
+    fit(); setTimeout(fit, 120);
+    window.__fit = fit;
+  })();
+  // 長按／右鍵選單一律唔彈（手機長按唔會再揀到圖）
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('dragstart', e => e.preventDefault());
+  document.addEventListener('selectstart', e => {
+    if (!/^(INPUT|TEXTAREA)$/.test(e.target.tagName)) e.preventDefault();
+  });
+</script>
+</body>
+</html>
