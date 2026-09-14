@@ -1,5 +1,9 @@
 # 🎂 Pocket Piano — 傻肥嘅生日 · Mary Land
 
+**▶ 玩：https://kelvin0611.github.io/pocket_piano/**（手機開都得）
+**Repo：https://github.com/kelvin0611/pocket_piano**
+
+
 一個**手機直向、16-bit pixel art 劇情小遊戲**，靈感嚟自 Tamagotchi 手提機：
 蛋形機身、LCD 螢幕、十字鍵＋A／B 掣、beep 音效、自動存檔。
 
