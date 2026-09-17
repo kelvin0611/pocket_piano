@@ -1512,15 +1512,12 @@
   function cutStep(dt) {
     CUT.t += dt;
     if (CUT.phase === 'jump') {
-      if (CUT.t > 1.5) { CUT.phase = 'night'; CUT.t = 0; }
-    } else if (CUT.phase === 'night') {
-      NIGHT.a = Math.min(1, CUT.t * 0.75);          // 0→1 = 淡入夜晚插畫
-      if (CUT.t > 1.2) {
+      if (CUT.t > 1.3) {                            // 唔再天黑：直接入去見傻豬
         CUT.on = false;
-        NIGHT.a = 1;
+        NIGHT.a = 0;
         transition(() => startScene('act3_intro'),
-                   { color: '#000000', card: '第二幕・數羊之夜', sub: '跳過籬笆之後，全村都睏著了',
-                     out: 0.7, hold: 1.3, inn: 0.7 });
+                   { color: '#000000', card: '第二幕・合體', sub: '去搵傻豬',
+                     out: 0.6, hold: 1.1, inn: 0.6 });
       }
     }
   }

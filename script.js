@@ -277,14 +277,12 @@ window.SCRIPT = {
       { end: true },
     ],
     act3_intro: [
-      { who: 'narrator', text: '跳過籬笆之後，成條村都靜晒。' },
-      { who: 'narrator', text: '…連兔仔朋友都開始打呵欠。' },
-      { who: 'rabbit', face: 'face', text: 'Zzz… 生日快樂… Zzz…' },
-      { who: 'narrator', text: '眼皮愈嚟愈重，星星好似落咗落嚟咁。' },
+      { who: 'narrator', text: '籬笆後面，暗得只剩一點光。' },
       { room: 'dream' },
       { who: 'narrator', text: '前面有個熟悉嘅身影。' },
       { end: true },
     ],
+
     /* 傻豬：合體 + 開估 */
     pig_act3: [
       { who: 'pig', face: 'happy', text: '{name}，三塊碎片都齊喇。' },
