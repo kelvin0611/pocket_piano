@@ -6139,6 +6139,96 @@
    "group": "ui",
    "seamless": false,
    "batch": 6
+  },
+  "av_andy": {
+   "file": "ui/avatars/av_andy.png",
+   "size": [
+    192,
+    192
+   ],
+   "sprite_size": [
+    192,
+    192
+   ],
+   "anchor": "center",
+   "group": "avatar",
+   "seamless": false,
+   "batch": 7
+  },
+  "av_swineb": {
+   "file": "ui/avatars/av_swineb.png",
+   "size": [
+    192,
+    192
+   ],
+   "sprite_size": [
+    192,
+    192
+   ],
+   "anchor": "center",
+   "group": "avatar",
+   "seamless": false,
+   "batch": 7
+  },
+  "av_nichole": {
+   "file": "ui/avatars/av_nichole.png",
+   "size": [
+    192,
+    192
+   ],
+   "sprite_size": [
+    192,
+    192
+   ],
+   "anchor": "center",
+   "group": "avatar",
+   "seamless": false,
+   "batch": 7
+  },
+  "av_hiulam": {
+   "file": "ui/avatars/av_hiulam.png",
+   "size": [
+    192,
+    192
+   ],
+   "sprite_size": [
+    192,
+    192
+   ],
+   "anchor": "center",
+   "group": "avatar",
+   "seamless": false,
+   "batch": 7
+  },
+  "av_kaka": {
+   "file": "ui/avatars/av_kaka.png",
+   "size": [
+    192,
+    192
+   ],
+   "sprite_size": [
+    192,
+    192
+   ],
+   "anchor": "center",
+   "group": "avatar",
+   "seamless": false,
+   "batch": 7
+  },
+  "av_waichun": {
+   "file": "ui/avatars/av_waichun.png",
+   "size": [
+    192,
+    192
+   ],
+   "sprite_size": [
+    192,
+    192
+   ],
+   "anchor": "center",
+   "group": "avatar",
+   "seamless": false,
+   "batch": 7
   }
  },
  "backgrounds": {
@@ -6683,6 +6773,14 @@
    "hint_keycap",
    "hint_sticker",
    "keyboard"
+  ],
+  "avatar": [
+   "av_andy",
+   "av_hiulam",
+   "av_kaka",
+   "av_nichole",
+   "av_swineb",
+   "av_waichun"
   ]
  }
 }

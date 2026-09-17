@@ -514,7 +514,10 @@
       }
     }
     // 1. speaker portrait floating above the box
-    if (DLG.faceKey) sprite(DLG.faceKey, BOX.x + 8, BOX.y - 100, 1);
+    if (DLG.faceKey) {
+      const fs2 = window.SPR[DLG.faceKey];
+      sprite(DLG.faceKey, BOX.x + 8, BOX.y - 100, (fs2 && fs2.h > 100) ? 96 / fs2.h : 1);
+    }
     // 2. the box (9-slice)
     nineSlice('dialog_box', BOX.x, BOX.y, BOX.w, BOX.h);
     // 3. name tag
