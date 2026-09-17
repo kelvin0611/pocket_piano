@@ -51,8 +51,7 @@
            drop-shadow(2px -2px 0 #fff) drop-shadow(-2px 2px 0 #fff)
            drop-shadow(0 4px 5px rgba(122,74,98,.30));}
   .sticker{pointer-events:none;}
-  /* 中間貼紙：之字形錯開，唔再一條直線疊落嚟 */
-  #stickerPiano{left:292px;bottom:12px;width:80px;height:88px;transform:rotate(-8deg);
+  #stickerPiano{left:306px;bottom:8px;width:78px;height:86px;transform:rotate(-8deg);
     background-image:url(assets/portraits/pianob_face_r1c1.png);}
   #stickerMonkey{left:8px;top:-24px;width:70px;height:80px;transform:rotate(6deg);
     background-image:url(assets/portraits/monkey_face.png);}   /* 獼猴貼紙（出好圖放落 assets/portraits/monkey_face.png 就自動出現） */
@@ -60,13 +59,13 @@
     background-image:url(assets/portraits/pianob_face_r3c1.png);}
   #stickerP3{right:6px;top:-20px;width:64px;height:74px;transform:rotate(-6deg);
     background-image:url(assets/portraits/pianob_face_r1c3.png);}
-  #stickerP4{left:300px;bottom:138px;width:64px;height:74px;transform:rotate(8deg);
+  #stickerP4{left:240px;bottom:170px;width:66px;height:76px;transform:rotate(-5deg);
     background-image:url(assets/portraits/piano_face_2.png);}
-  #stickerP5{left:246px;bottom:84px;width:54px;height:62px;transform:rotate(-7deg);
+  #stickerP5{left:242px;bottom:96px;width:54px;height:62px;transform:rotate(6deg);
     background-image:url(assets/portraits/piano_face_4.png);}
-  #stickerHeart{left:248px;bottom:14px;width:44px;height:44px;transform:rotate(9deg);opacity:.92;
+  #stickerHeart{left:246px;bottom:8px;width:48px;height:48px;transform:rotate(9deg);opacity:.92;
     background-image:url(assets/ui/FX2_r2c2.png);}
-  #stickerHeart2{left:256px;bottom:196px;width:38px;height:38px;transform:rotate(-12deg);opacity:.85;
+  #stickerHeart2{left:242px;bottom:240px;width:40px;height:40px;transform:rotate(-8deg);opacity:.85;
     background-image:url(assets/ui/FX2_r2c1.png);}
   #brand{position:absolute;left:0;right:0;top:6px;text-align:center;
     color:#9C6C84;font-size:14px;letter-spacing:6px;font-weight:600;}
@@ -96,8 +95,6 @@
   @keyframes hintfade{to{opacity:0}}
   body.in-dlg #hint,body.in-menu #hint,body.in-room #hint,body.in-title #hint{opacity:0}
   body.in-trans .btn,body.in-trans .hit,body.in-trans #hint{opacity:0;pointer-events:none}
-  body.in-end #hint,body.in-end #bB{opacity:0;pointer-events:none}   /* 結局字幕／合照：只留 A */
-  body.in-end #stick{opacity:.35}
   body.in-trans.cover-wait #bA,body.in-trans.cover-wait .hit{opacity:.95;pointer-events:auto}
   body.in-title #brand{opacity:0}                 /* 封面已經有 logo，機殼頂唔重複 */
   body.in-title #dpadwrap,body.in-title #bB{opacity:0;pointer-events:none}
@@ -107,10 +104,9 @@
   body.in-menu #bB{opacity:.85}
   body.in-menu .hit{pointer-events:auto}
   /* ---------- 打字／送禮 UI（字體放大，避免 iOS 自動 zoom）---------- */
-  #nameui{display:none;position:absolute;left:0;right:0;top:452px;text-align:center;}
+  #nameui{display:none;position:absolute;left:0;right:0;top:470px;text-align:center;}
   body.in-title-name #nameui{display:block}
-  #nameui .q{color:#4A2E38;font-size:30px;margin-bottom:4px;}
-  #nameui .note{color:#8A5E74;font-size:17px;margin-bottom:16px;}
+  #nameui .q{color:#4A2E38;font-size:30px;margin-bottom:20px;text-shadow:0 1px 0 #fff;}
   #nameIn{width:330px;padding:16px;font-size:34px;text-align:center;color:#4A2E38;
     background:#FFF6FA;border:4px solid #4A2E38;border-radius:18px;outline:none;font-family:inherit;}
   #startBtn{margin-top:22px;display:inline-block;padding:14px 44px;font-size:30px;
@@ -144,7 +140,6 @@
       <div id="hint">A 傾偈 · B 選單 · 搖桿行路</div>
       <div id="nameui">
         <div class="q">妳嘅名係…？</div>
-        <div class="note">（之後所有人都會咁叫妳）</div>
         <input id="nameIn" maxlength="6" placeholder="打妳個名" autocomplete="off" spellcheck="false">
         <button id="startBtn">START ♥</button>
       </div>
@@ -191,11 +186,10 @@
       let h = Math.round(r.height) || H0;
       if (Math.abs(w - W0) > 24) w = W0;
       if (Math.abs(h - H0) > 24) h = H0;
-      const TOP = 46;                          // 鎖匙扣／頂部貼紙凸出機身嘅高度，唔好畀視窗切走
-      const s = Math.min(VWp / w, VHp / (h + TOP));
+      const s = Math.min(VWp / w, VHp / h);
       sh.style.transform = 'scale(' + s + ')';
       sh.style.left = Math.max(0, (VWp - w * s) / 2) + 'px';
-      sh.style.top = (Math.max(0, (VHp - (h + TOP) * s) / 2) + TOP * s) + 'px';
+      sh.style.top = Math.max(0, (VHp - h * s) / 2) + 'px';
       if (prev === undefined) sh.style.transform = 'scale(' + s + ')';
       window.__fitS = { s: s, w: w, h: h };
     }

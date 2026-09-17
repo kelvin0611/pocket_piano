@@ -89,11 +89,12 @@
     put(x, y - 1, top);                       // canopy
     put(x, y, 'T2_r1c3', { solid: 1 });       // trunk
   }
-  //  屋：成間屋一張完整外牆圖（house_<id>），唔再用 12 格有框嘅牆磚拼 → 唔會一格格
-  const HOUSES = [];
+  const WALL = 'T3_r1c2';
   function house(x0, y0, doorCol, opt = {}) {
-    HOUSES.push({ x0, y0, sk: 'house_' + opt.id });
-    for (let j = 0; j < 3; j++) for (let i = 0; i < 4; i++) put(x0 + i, y0 + j, null, { draw: false, solid: 1 });
+    for (let i = 0; i < 4; i++) put(x0 + i, y0, WALL, { draw: true });          // backing
+    for (let i = 0; i < 4; i++) put(x0 + i, y0, i % 2 ? 'T3_r2c2' : 'T3_r2c1', { solid: 1 });
+    for (let i = 0; i < 4; i++) put(x0 + i, y0 + 1, WALL, { solid: 1 });
+    for (let i = 0; i < 4; i++) put(x0 + i, y0 + 2, WALL, { solid: 1 });
     put(doorCol, y0 + 1, 'T3_r3c2');                                             // awning over the door
     put(x0 + (doorCol - x0 === 0 ? 3 : 0), y0 + 1, opt.sign || 'T3_r4c1');      // hanging shop sign
     put(doorCol, y0 + 2, 'T3_r2c3', { trigger: { type: 'door', id: opt.id, label: opt.label } });
@@ -206,7 +207,6 @@
   // ---------------------------------------------------------------- player
   const P = { x: 11 * T + 24, y: 17 * T + 46, dir: 'up', moving: false, t: 0, speed: 205 };
   let IDLE_T = 0;
-  let BUMP_LAST = null;                        // 啱啱撞過觸發咗嘅目標（NPC／籬笆）；未離開或者未放手之前唔會再觸發
   const IDLE = { down: 'pianow_r1c1', up: 'pianow_r2c1', left: 'pianow_r3c1', right: 'pianow_r4c1' };
   const WALK = {
     down: ['pianow_r1c2', 'pianow_r1c3', 'pianow_r1c4'],   // 行路 3 格
@@ -224,19 +224,16 @@
   function press(dir, on) {
     if (on === !!held[dir]) return;
     held[dir] = on ? 1 : 0;
-    // 行路清單永遠同「撳緊邊個掣」一致：以前喺選單／選擇題入面撳落嘅方向唔會入清單，
-    // 關咗之後仲撳住都唔郁（要放手再撳），睇落好似卡死
-    const i = order.indexOf(dir);
-    if (on) { if (i < 0) order.push(dir); } else if (i >= 0) order.splice(i, 1);
-    if (!order.length) BUMP_LAST = null;       // 放晒手 → 撞嘢觸發重新生效
-    if (on && MENU.open) {                     // menu: ←→ pick, ↑↓ scroll（世界凍結，唔會行）
+    if (on && MENU.open) {                     // menu: ←→ pick, ↑↓ scroll
       if (dir === 'left' || dir === 'up') return menuMove(-1);
       if (dir === 'right' || dir === 'down') return menuMove(1);
     }
     if (on && DLG.on && DLG.choice) {          // dpad = move the choice cursor
-      if (dir === 'up') DLG.sel = (DLG.sel + DLG.choice.length - 1) % DLG.choice.length;
-      if (dir === 'down') DLG.sel = (DLG.sel + 1) % DLG.choice.length;
+      if (dir === 'up') { DLG.sel = (DLG.sel + DLG.choice.length - 1) % DLG.choice.length; return; }
+      if (dir === 'down') { DLG.sel = (DLG.sel + 1) % DLG.choice.length; return; }
     }
+    const i = order.indexOf(dir);
+    if (on) { if (i < 0) order.push(dir); } else if (i >= 0) order.splice(i, 1);
   }
 
   // A button / tap: talk to whoever is in front, or advance the dialogue
@@ -259,7 +256,8 @@
       if (TRANS.on) { PENDING_A = true; return; }   // 轉場未完：記住，完咗即刻處理
       return titleAdvance();
     }
-    if (CAST.on) { CAST.on = false; showGift(); return; }
+    if (MERGE.on) return;                                        // 合體動畫唔可以跳過
+    if (CAST.on) { CAST.on = false; openGiftUI('msg'); return; }
     if (PHOTO.on) { PHOTO.on = false; CAST.on = true; CAST.t = 0; CAST.a = 0; return; }
     if (CREDITS.on) { CREDITS.on = false; PHOTO.on = true; PHOTO.t = 0; return; }
     if (MENU.open) return menuSelect();
@@ -305,14 +303,11 @@
     }
     advance();
   });
-  // 打緊字（名／禮物輸入框）就唔好當遊戲掣：以前 WASD／Z／空白鍵會被食咗，打唔到 a、d、s、w…
-  const typing = e => /^(INPUT|TEXTAREA)$/.test((e.target && e.target.tagName) || '');
   addEventListener('keydown', e => {
-    if (typing(e)) return;
     if (e.key === ' ' || e.key === 'Enter' || e.key === 'z' || e.key === 'Z') { pressA(); e.preventDefault(); }
   });
-  addEventListener('keydown', e => { if (typing(e)) return; const k = KEYMAP[e.key]; if (k) { press(k, 1); e.preventDefault(); } });
-  addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) press(k, 0); });   // 放手永遠要處理，唔會卡住方向
+  addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { press(k, 1); e.preventDefault(); } });
+  addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) press(k, 0); });
   // 畫布點一下：封面／對白／字幕＝撳 A（行路時唔會誤觸）
   const cvEl = document.querySelector('canvas');
   if (cvEl) cvEl.addEventListener('pointerdown', e => {
@@ -411,14 +406,18 @@
     if (st.show !== undefined) { DLG.show = st.show; DLG.showS = st.s || 4.2; return nextStep(); }
     if (st.night !== undefined) { NIGHT.a = st.night; return nextStep(); }
     if (st.tally) {
-      transition(null, { color: '#1B1420', card: '心願碎片 ' + STATE.items.length + '／3',
+      transition(null, { color: '#1B1420', card: '碎片 ' + STATE.items.length + '／3',
                          sub: st.tally, out: 0.35, hold: 1.25, inn: 0.5 });
       return nextStep();
     }
     if (st.cutin) { CUTIN.on = true; CUTIN.key = st.cutin; CUTIN.t = 0; beep(1318, 0.08); return nextStep(); }
     if (st.celebrate) { CELEB.on = !!st.celebrate; if (st.celebrate) { for (let i = 0; i < 4; i++) celebPuff(); } return nextStep(); }
     if (st.credits) { CREDITS.on = true; CREDITS.t = 0; CREDITS.a = 0; return nextStep(); }
-    if (st.gift) { showGift(); return nextStep(); }
+    if (st.gift) { openGiftUI('msg'); return; }
+    if (st.guess) { openGiftUI('guess'); return; }                 // 收估法：同禮物面板（唔行 nextStep，等玩家）
+    if (st.merge) {                                                // 合體 → 鍵盤動畫（開估）
+      MERGE.on = true; MERGE.t = 0; clackSeq(10, 0.13, 0.05); return;
+    }
     if (st.choice) { DLG.choice = st.choice; DLG.sel = 0; DLG.done = true; return; }
     if (st.end) return endScene();
     DLG.who = st.who || 'narrator';
@@ -433,6 +432,7 @@
   }
   function advance() {
     if (!DLG.on) return;
+    if (MERGE.on || GUESS.open) return;
     if (DLG.choice) return pick(DLG.sel);
     if (!DLG.done) { DLG.n = DLG.chars.length; DLG.done = true; return; }
     nextStep();
@@ -481,7 +481,6 @@
     return true;
   }
 
-  const NO_LINE_START = '，。、！？…～：；）」』〕,.!?~)';
   function wrapChars(chars, maxW, px) {
     ctx.font = FONT(px);
     const lines = [];
@@ -489,8 +488,7 @@
     for (const c of chars) {
       if (c === '\n') { lines.push(cur); cur = ''; w = 0; continue; }
       const cw = ctx.measureText(c).width;
-      // 避頭點：標點唔會自己孤零零跌落下一行（寧願凸少少出去）
-      if (w + cw > maxW && cur && !NO_LINE_START.includes(c)) { lines.push(cur); cur = ''; w = 0; }
+      if (w + cw > maxW && cur) { lines.push(cur); cur = ''; w = 0; }
       cur += c; w += cw;
     }
     lines.push(cur);
@@ -515,24 +513,18 @@
         if (Math.sin(DLG.t * 5) > 0) sprite('fx_r1c3', cx0 + w / 2 + 4, cy0 - h / 2 - 12, 1.2);
       }
     }
-    // 1. speaker portrait：奶白相框托住，唔再細細粒浮喺背景上
-    const hasFace = DLG.faceKey && window.SPR[DLG.faceKey];
-    if (hasFace) {
-      roundRect(BOX.x + 10, BOX.y - 104, 108, 108, 22, '#FFF6FA', '#4A2E38', 4);
-      roundRect(BOX.x + 16, BOX.y - 98, 96, 96, 17, '#FBE3EA', null);
-      sprite(DLG.faceKey, BOX.x + 16, BOX.y - 98, 1);
-    }
+    // 1. speaker portrait floating above the box
+    if (DLG.faceKey) sprite(DLG.faceKey, BOX.x + 8, BOX.y - 100, 1);
     // 2. the box (9-slice)
     nineSlice('dialog_box', BOX.x, BOX.y, BOX.w, BOX.h);
-    // 3. name tag（有頭像就貼住相框右邊）
+    // 3. name tag
     if (DLG.speaker) {
       ctx.font = FONT(19);
       const tw = ctx.measureText(DLG.speaker).width;
-      const nx = hasFace ? BOX.x + 128 : BOX.x + 40;
-      roundRect(nx, BOX.y - 21, tw + 30, 38, 14, '#FBCFD6', '#4A2E38', 3);
+      roundRect(BOX.x + 116, BOX.y - 21, tw + 30, 38, 14, '#FBCFD6', '#4A2E38', 3);
       ctx.fillStyle = '#4A2E38';
       ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      ctx.fillText(DLG.speaker, nx + 15, BOX.y - 1);
+      ctx.fillText(DLG.speaker, BOX.x + 131, BOX.y - 1);
     }
     // 4. typewriter text
     if (DLG.text) {
@@ -584,8 +576,8 @@
   const SHOPS = [['pasta', 14, 'bear_done'], ['seafood', 8, 'lobster_done'], ['cafe', 19, 'cat_done']];
   function goal() {
     if (W.kind === 'room') {
-      if (!STATE.flags[W.room.npc.done]) return { txt: '行近佢 → 撳 A 傾偈' };
-      return { txt: '搞掂！行到最底出返村口' };
+      if (W.room.auto && !STATE.flags[W.room.npc.done]) return { txt: '行近佢 → 撳 A 傾偈' };
+      return { txt: '行到最底 → 出返村口（或者 B→返村口）' };
     }
     if (!STATE.flags.quest_started) return { txt: '去搵兔仔朋友', tx: 12 * T + 24, ty: 11 * T };
     const n = STATE.items.length;
@@ -661,6 +653,8 @@
   // ------------------------------------------------ tamagotchi-style shell UI
   //  3-button logic: A = 確認／對話　B = 開閂選單　十字鍵 ←→ = 揀 icon
   let AC = null, SHAKE = 0;
+  const MERGE = { on: false, t: 0, clacked: false };
+  const GUESS = { open: false, mode: 'guess' };
   const OPT = { sound: true, bgm: true };
   try { Object.assign(OPT, JSON.parse(localStorage.getItem('bday_opt') || '{}')); } catch (e) {}
   const optSave = () => { try { localStorage.setItem('bday_opt', JSON.stringify(OPT)); } catch (e) {} };
@@ -675,6 +669,28 @@
       o.start(); o.stop(AC.currentTime + (dur || 0.05));
     } catch (e) {}
   }
+
+  // 機械鍵盤「啪」一聲 —— 提示用：唔寫出嚟，用聽
+  function clack(when, vol) {
+    if (!OPT.sound) return;
+    try {
+      AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+      const t = AC.currentTime + (when || 0);
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.type = 'square';
+      o.frequency.setValueAtTime(2600, t);
+      o.frequency.exponentialRampToValueAtTime(820, t + 0.035);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(vol === undefined ? 0.05 : vol, t + 0.003);
+      g.gain.exponentialRampToValueAtTime(0.0005, t + 0.055);
+      o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + 0.07);
+      const o2 = AC.createOscillator(), g2 = AC.createGain();
+      o2.type = 'triangle'; o2.frequency.setValueAtTime(170, t);
+      g2.gain.setValueAtTime(0.045, t); g2.gain.exponentialRampToValueAtTime(0.0005, t + 0.09);
+      o2.connect(g2); g2.connect(AC.destination); o2.start(t); o2.stop(t + 0.1);
+    } catch (e) {}
+  }
+  function clackSeq(n, gap, vol) { for (let i = 0; i < n; i++) clack(i * (gap || 0.14), vol); }
 
   // ------------------------------------------------ 背景音樂（WebAudio 即場合成 chiptune，唔需要音檔）
   const NT = { C2: 65.41, D2: 73.42, E2: 82.41, F2: 87.31, G2: 98.00, A2: 110.00, B2: 123.47,
@@ -776,7 +792,7 @@
       ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
       const sc = Math.max(w / b.naturalWidth, h / b.naturalHeight) * k;
       const dw = b.naturalWidth * sc, dh = b.naturalHeight * sc;
-      ctx.drawImage(b, VW / 2 - dw / 2, y + h - dh * 0.985, dw, dh);   // 貼底裁：前排主角同傻豬唔會被切走
+      ctx.drawImage(b, VW / 2 - dw / 2, y + h / 2 - dh / 2, dw, dh);
       ctx.restore();
       ctx.lineWidth = 9; ctx.strokeStyle = '#FFF6FA'; ctx.strokeRect(x, y, w, h);
     } else {
@@ -825,7 +841,7 @@
       ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
       const sc = Math.max(w / b.naturalWidth, h / b.naturalHeight);
       const dw = b.naturalWidth * sc, dh = b.naturalHeight * sc;
-      ctx.drawImage(b, VW / 2 - dw / 2, y + h - dh * 0.985, dw, dh);
+      ctx.drawImage(b, VW / 2 - dw / 2, y + h / 2 - dh / 2, dw, dh);
       ctx.restore();
       ctx.fillStyle = 'rgba(27,20,32,0.72)'; ctx.fillRect(x, y, w, h);
       ctx.lineWidth = 9; ctx.strokeStyle = '#FFF6FA'; ctx.strokeRect(x, y, w, h);
@@ -851,7 +867,7 @@
     }
     ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     ctx.restore();
-    if (y0 + L.length * gap < -30) { CAST.on = false; showGift(); }     // 滾完 → 問禮物
+    if (y0 + L.length * gap < -30) { CAST.on = false; openGiftUI('msg'); }     // 滾完 → 問禮物
   }
   function castStep(dt) {
     if (!CAST.on) return;
@@ -1203,13 +1219,11 @@
       ctx.globalAlpha = 0.22; ctx.fillStyle = '#1B1420';
       ctx.beginPath(); ctx.ellipse(VW / 2, 872, 56, 11, 0, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
-      if (!hasCover) sprite('pianow_r1c1', VW / 2 - 80, 714 + bob * 0.8, 2.5);   // 置中、腳踩喺影上    // 封面圖有主角就唔重複
+      if (!hasCover) sprite('pianow_r1c1', VW / 2, 806 + bob * 0.8, 2.5);    // 封面圖有主角就唔重複
       // ⑦ 撳 A 開始（閃）
-      //    放喺日期牌同主角之間，唔再壓住封面主角個頭
-      ctx.globalAlpha = 0.6 + 0.4 * Math.abs(Math.sin(tt * 2.8));
-      roundRect(VW / 2 - 92, 596, 184, 42, 21, 'rgba(27,20,32,0.55)', 'rgba(251,207,214,0.6)', 2);
-      ctx.font = FONT(18); ctx.fillStyle = '#FFF6FA';
-      ctx.fillText('\u25b6  撳 A 開始', VW / 2, 618);
+      ctx.globalAlpha = 0.55 + 0.45 * Math.abs(Math.sin(tt * 2.8));
+      ctx.font = FONT(17); ctx.fillStyle = '#FFF6FA';
+      ctx.fillText('\u25b6  撳 A 開始', VW / 2, 902);
       ctx.globalAlpha = 1;
       // ⑧ 暗角
       const vg = ctx.createRadialGradient(VW / 2, VH / 2, VH * 0.3, VW / 2, VH / 2, VH * 0.74);
@@ -1391,24 +1405,18 @@
     }
     if (TITLE.phase === 'name') {
       // 奶白牌 + 深色字：唔會再被後面畫面食住
-      //    一整張卡包住標題＋問題＋輸入框＋START（HTML 部分疊喺卡入面）
-      ctx.fillStyle = 'rgba(27,20,32,0.28)'; ctx.fillRect(0, 0, VW, VH);
-      roundRect((VW - 470) / 2, 330, 470, 400, 26, 'rgba(255,246,250,0.97)', '#4A2E38', 5);
-      ctx.font = FONT(24); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      roundRect((VW - 486) / 2, 336, 486, 116, 22, 'rgba(255,246,250,0.95)', '#4A2E38', 4);
+      ctx.font = FONT(25); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = '#4A2E38';
-      ctx.fillText(SC.defaultName + '嘅生日 · Mary Land', VW / 2, 382);
-      ctx.strokeStyle = 'rgba(74,46,56,0.25)'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(VW / 2 - 150, 422); ctx.lineTo(VW / 2 + 150, 422); ctx.stroke();
-      sprite('FX2_r2c2', VW / 2 - 14, 408, 0.3);
+      ctx.fillText('傻肥 嘅生日 · Mary Land', VW / 2, 372);
+      ctx.font = FONT(16); ctx.fillStyle = '#8A5E74';
+      ctx.fillText('（之後所有人都會咁叫妳）', VW / 2, 412);
       ctx.textAlign = 'left'; ctx.textBaseline = 'top';
       return;
     }
     if (TITLE.phase === 'date') {
-      const cw = 330, ch = 250, cx = (VW - cw) / 2, cy = 300;
-      ctx.fillStyle = 'rgba(27,20,32,0.28)'; ctx.fillRect(0, 0, VW, VH);
-      roundRect(cx, cy, cw, ch + 120, 20, '#FFF6FA', '#4A2E38', 5);   // 日曆＋祝福字同一張卡
-      ctx.strokeStyle = 'rgba(74,46,56,0.2)'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(cx + 30, cy + ch + 4); ctx.lineTo(cx + cw - 30, cy + ch + 4); ctx.stroke();
+      const cw = 330, ch = 250, cx = (VW - cw) / 2, cy = 330;
+      roundRect(cx, cy, cw, ch, 20, '#FFF6FA', '#4A2E38', 5);
       ctx.font = FONT(20); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
       ctx.fillStyle = '#4A2E38';
       ctx.fillText('2026 年 9 月', VW / 2, cy + 20);
@@ -1431,10 +1439,11 @@
         }
       }
       ctx.font = FONT(24); ctx.fillStyle = '#4A2E38';
-      ctx.fillText('生日快樂，' + STATE.name + ' ♥', VW / 2, cy + ch + 24);
-      ctx.font = FONT(17);
-      ctx.fillStyle = 'rgba(74,46,56,' + (0.4 + 0.35 * Math.abs(Math.sin(TITLE.t * 2.8))).toFixed(2) + ')';
-      ctx.fillText('▶ 撳 A 開始', VW / 2, cy + ch + 72);
+      ctx.fillText('生日快樂，' + STATE.name + ' ♥', VW / 2, cy + ch + 62);
+      if (Math.sin(TITLE.t * 4) > 0) {
+        ctx.font = FONT(18); ctx.fillStyle = 'rgba(74,46,56,0.65)';
+        ctx.fillText('撳 A 開始', VW / 2, cy + ch + 108);
+      }
       ctx.textAlign = 'left';
     }
   }
@@ -1494,6 +1503,7 @@
     }
     if (STATE.flags.act3_seen) return startScene('fence_later');
     if (!STATE.flags.act2_done) return startScene('fence_early');
+    if (!STATE.flags.friends_done) { STATE.flags.friends_done = 1; save(); return startScene('friends_chat'); }
     CUT.on = true; CUT.t = 0; CUT.phase = 'jump';
     STATE.flags.act3_seen = 1; save();
     P.dir = 'down'; P.moving = false; P.t = 0;
@@ -1509,27 +1519,52 @@
         CUT.on = false;
         NIGHT.a = 1;
         transition(() => startScene('act3_intro'),
-                   { color: '#000000', card: '第二幕・數羊之夜', sub: '跳過籬笆之後，成條村都瞓著咗',
+                   { color: '#000000', card: '第二幕・數羊之夜', sub: '跳過籬笆之後，全村都睏著了',
                      out: 0.7, hold: 1.3, inn: 0.7 });
       }
     }
   }
-  function showGift() {
+  function openGiftUI(mode) {
+    GUESS.open = true; GUESS.mode = mode || 'msg';
+    const q = document.querySelector('#giftui .q');
+    const ta = document.getElementById('giftIn');
+    const sb = document.getElementById('sendBtn');
+    const sk = document.getElementById('giftSkip');
+    if (GUESS.mode === 'guess') {
+      if (q) q.textContent = '妳估下…三塊碎片砌埋會變成咩？';
+      if (ta) ta.placeholder = '打你嘅估法（唔中都得，我想知）';
+      if (sb) sb.textContent = '送出 ♥';
+      if (sk) sk.textContent = '唔估住，等開估';
+    } else {
+      if (q) q.textContent = '有咩想同傻豬b講？';
+      if (ta) ta.placeholder = '想講咩都得～（會直接 send 畀傻豬b）';
+      if (sb) sb.textContent = 'Send 畀傻豬b ♥';
+      if (sk) sk.textContent = '唔寫住，多謝你';
+    }
     document.body.classList.add('in-gift');
-    setTimeout(() => { const el = document.getElementById('giftIn'); try { el && el.focus(); } catch (e) {} }, 80);
+    setTimeout(() => { try { ta && ta.focus(); } catch (e) {} }, 80);
   }
+  function closeGiftUI(resume) {
+    document.body.classList.remove('in-gift');
+    const was = GUESS.open; GUESS.open = false;
+    if (resume !== false && was) setTimeout(() => { if (DLG.on && !MERGE.on) nextStep(); }, 450);
+  }
+  function showGift() { openGiftUI('msg'); }
   const sendBtn = document.getElementById('sendBtn');
   if (sendBtn) sendBtn.addEventListener('click', () => {
     const v = (document.getElementById('giftIn').value || '').trim() || '（未諗到，但係今日好開心）';
-    STATE.gift = v; save();
+    const isGuess = GUESS.mode === 'guess';
+    if (isGuess) { STATE.guess = v; } else { STATE.gift = v; }
+    save();
     const _g = document.getElementById('giftIn'); if (_g && _g.blur) _g.blur();
     beep(1318, 0.09);
-    location.href = 'https://wa.me/85265498648?text=' + encodeURIComponent('我想要：' + v);
+    closeGiftUI(true);
+    location.href = 'https://wa.me/85265498648?text=' + encodeURIComponent((isGuess ? '佢估：' : '傻肥話：') + v);
   });
   const giftSkip = document.getElementById('giftSkip');
   if (giftSkip) giftSkip.addEventListener('click', () => {
     const _g2 = document.getElementById('giftIn'); if (_g2 && _g2.blur) _g2.blur();
-    document.body.classList.remove('in-gift');
+    closeGiftUI(true);
     beep(523, 0.07);
   });
   const giftRestart = document.getElementById('giftRestart');       // 重新玩過
@@ -1537,6 +1572,127 @@
     beep(523, 0.08);
     doReset();
   });
+
+  // ---------------- 合體 → 鍵盤動畫（開估）----------------
+  function fragIcon(kind, x, y, sc) {                       // 三塊碎片（程序繪圖，唔使圖檔）
+    ctx.save(); ctx.translate(x, y); ctx.scale(sc || 1, sc || 1);
+    if (kind === 'jersey') {                                // ① 10 號球衣
+      roundRect(-19, -21, 38, 42, 6, '#E8705F', '#4A2E38', 3);
+      roundRect(-30, -19, 11, 17, 4, '#E8705F', '#4A2E38', 3);
+      roundRect(19, -19, 11, 17, 4, '#E8705F', '#4A2E38', 3);
+      ctx.font = FONT(19); ctx.fillStyle = '#FFF6FA';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('10', 0, 2);
+    } else if (kind === 'sticker') {                        // ② 貼紙（排球）
+      roundRect(-21, -21, 42, 42, 9, '#FFF6FA', '#4A2E38', 3);
+      ctx.beginPath(); ctx.arc(0, 0, 13, 0, Math.PI * 2);
+      ctx.fillStyle = '#FBCFD6'; ctx.fill();
+      ctx.strokeStyle = '#4A2E38'; ctx.lineWidth = 2.4; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-12.5, 0); ctx.quadraticCurveTo(0, -9, 12.5, 0); ctx.stroke();
+    } else {                                                // ③ 一粒方塊（唔講明）
+      roundRect(-20, -20, 40, 34, 6, '#FFF3F8', '#4A2E38', 3);
+      roundRect(-14, -16, 28, 19, 4, '#F3DCE6', null, 0);
+    }
+    ctx.restore();
+  }
+  function drawKeyboard(x, y, w, prog) {
+    const h = w * 0.44;
+    roundRect(x, y, w, h, 16, '#3A2530', '#4A2E38', 5);
+    const rows = 4, cols = 12, pad = 16;
+    const kw = (w - pad * 2) / cols, kh = (h - pad * 2) / rows;
+    let n = 0;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const p = prog * rows * cols - n; n++;
+        if (p <= 0) continue;
+        if (r === 3 && c >= 3 && c <= 7) continue;           // 留位畀大鍵
+        const sc2 = Math.min(1, p * 2.6), lift = (1 - sc2) * 14;
+        const kx = x + pad + c * kw, ky = y + pad + r * kh;
+        let col = '#FFF3F8', label = '';
+        if (r === 0 && c === 6) { col = '#E8705F'; label = '10'; }
+        if (r === 0 && c === 7) { col = '#2E2A3A'; label = '9'; }
+        roundRect(kx + 1.5, ky + 1.5 + lift, kw - 3, kh - 4, 4, col, '#4A2E38', 2);
+        if (label) {
+          ctx.font = FONT(13); ctx.fillStyle = '#FFF6FA';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(label, kx + kw / 2, ky + kh / 2 + lift + 1);
+        }
+      }
+    }
+    if (prog > 0.55) {                                        // 大鍵 + 排球
+      const bx = x + pad + 3 * kw, by = y + pad + 3 * kh, bw = kw * 5, bh = kh - 4;
+      roundRect(bx + 1.5, by + 1.5, bw - 3, bh, 4, '#FBCFD6', '#4A2E38', 2);
+      const r0 = Math.min(bh * 0.42, 10);
+      ctx.beginPath(); ctx.arc(bx + bw / 2, by + bh / 2, r0, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFF6FA'; ctx.fill();
+      ctx.strokeStyle = '#4A2E38'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(bx + bw / 2 - r0 * 0.9, by + bh / 2);
+      ctx.quadraticCurveTo(bx + bw / 2, by + bh / 2 - r0 * 0.8, bx + bw / 2 + r0 * 0.9, by + bh / 2);
+      ctx.stroke();
+    }
+  }
+  function drawMerge() {
+    const t = MERGE.t;
+    ctx.save();
+    ctx.fillStyle = '#1B1420'; ctx.fillRect(0, 0, VW, VH);
+    const gl = ctx.createRadialGradient(VW / 2, 430, 30, VW / 2, 430, 340);
+    gl.addColorStop(0, 'rgba(255,205,225,0.20)'); gl.addColorStop(1, 'rgba(255,205,225,0)');
+    ctx.fillStyle = gl; ctx.fillRect(0, 0, VW, VH);
+    const frags = ['jersey', 'sticker', 'key'];
+    if (t < 1.35) {                                          // 三塊碎片飛入中心
+      const k = Math.min(1, t / 1.05), ease = 1 - Math.pow(1 - k, 3);
+      const from = [[110, 190], [VW - 110, 190], [VW / 2, 720]];
+      for (let i = 0; i < 3; i++) {
+        const fx = from[i][0] + (VW / 2 - from[i][0]) * ease;
+        const fy = from[i][1] + (430 - from[i][1]) * ease;
+        ctx.globalAlpha = Math.max(0, 1 - Math.max(0, k - 0.82) * 5);
+        fragIcon(frags[i], fx, fy, 1.05 + (1 - ease) * 0.35);
+      }
+      ctx.globalAlpha = 1;
+    }
+    if (t >= 1.0) {
+      if (t < 1.5) {                                          // 閃光
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.92 * (1 - (t - 1.0) / 0.5)).toFixed(2) + ')';
+        ctx.fillRect(0, 0, VW, VH);
+      }
+      const prog = Math.max(0, Math.min(1, (t - 1.25) / 2.3));
+      const kw = 470, kx = (VW - kw) / 2;
+      ctx.globalAlpha = Math.min(1, (t - 1.0) / 0.35);
+      drawKeyboard(kx, 336, kw, prog);
+      ctx.globalAlpha = 1;
+      if (t > 3.5) {                                          // 打字光左右掃
+        const idx = Math.floor((t - 3.5) * 7) % 12;
+        const cw2 = (kw - 32) / 12, ch2 = (kw * 0.44 - 32) / 4;
+        ctx.globalAlpha = 0.30;
+        roundRect(kx + 16 + idx * cw2 + 1.5, 336 + 16 + 3 * ch2 + 1.5, cw2 - 3, ch2 - 4, 4,
+                  'rgba(255,255,255,0.75)', null, 0);
+        ctx.globalAlpha = 1;
+      }
+      if (t > 4.1) {                                          // 開估文字
+        ctx.globalAlpha = Math.min(1, (t - 4.1) / 0.6);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = FONT(29); ctx.fillStyle = '#FBCFD6';
+        ctx.fillText('為你砌嘅 · 鍵盤', VW / 2, 646);
+        ctx.font = FONT(18); ctx.fillStyle = 'rgba(255,232,240,0.88)';
+        ctx.fillText('排球少年　10 ＋ 9', VW / 2, 688);
+        ctx.font = FONT(15); ctx.fillStyle = 'rgba(201,169,184,0.92)';
+        ctx.fillText('一粒一粒砌嘅，砌咗好多個夜晚', VW / 2, 726);
+        ctx.globalAlpha = 1;
+      }
+    }
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.restore();
+  }
+  function mergeStep(dt) {
+    if (!MERGE.on) return;
+    if (MERGE.demo) return;
+    MERGE.t += dt;
+    if (MERGE.t > 4.3 && !MERGE.clacked) { MERGE.clacked = true; clackSeq(5, 0.12, 0.045); }
+    if (MERGE.t > 6.4) {
+      MERGE.on = false; MERGE.clacked = false;
+      if (DLG.on) nextStep();                                 // 動畫完 → 繼續對白
+    }
+  }
 
   // ---------------- 電影式滾動字幕 ----------------
   function creditLines() {
@@ -1599,7 +1755,7 @@
     if (MENU.open) return;               // menu freezes the world (like the real device)
     if (CONFIRM.on) return;              // 確認框都 freeze
     if (document.body.classList.contains('in-gift')) return;   // 送禮物畫面：完全唔郁
-    photoStep(dt); castStep(dt);
+    photoStep(dt); castStep(dt); mergeStep(dt);
     if (CUT.on) { cutStep(dt); return; }   // Act 3 過場（跳籬笆／天黑）
     if (DLG.on) {                       // dialogue freezes the player
       DLG.t += dt;
@@ -1654,14 +1810,11 @@
         const isFence = t.y === FENCE.row && t.x >= FENCE.x0 && t.x <= FENCE.x1;
         // 「有用嘅嘢」＝可以傾偈嘅人／籬笆（去第二幕）／舖頭門口 → 先震
         const useful = !!DOORSTEP[t.x + ',' + t.y] || trig.some(g => g.x === t.x && g.y === t.y);
-        // 對白完咗仲頂住方向 → 以前會即刻再撞再開對白，無限 loop 郁唔到；而家要行開或者放手先再觸發
-        const key = npc ? 'npc:' + npc.id : (isFence ? 'fence' : null);
-        if (key && key === BUMP_LAST) { /* 同一個目標，仲頂住：唔再觸發 */ }
-        else if (npc) { SHAKE = 0.14; BUMP_LAST = key; startScene(npcScene(npc)); }
-        else if (isFence) { SHAKE = 0.14; BUMP_LAST = key; act3Try(); }
+        if (npc) { SHAKE = 0.14; startScene(npcScene(npc)); }
+        else if (isFence) { SHAKE = 0.14; act3Try(); }
         else if (useful) SHAKE = 0.14;
         // 其他（樹、草、圍欄、水）→ 唔震，唔想 distract
-      } else BUMP_LAST = null;                  // 行得郁 = 已經離開咗，下次撞可以再觸發
+      }
       // 踏到舖頭門口嘅磚 → 入室內
       if (DOOR_LOCK <= 0) {
         const dt_ = DOORSTEP[Math.floor(P.x / T) + ',' + Math.floor((P.y - 6) / T)];
@@ -1685,26 +1838,6 @@
     } else ctx.drawImage(im, dx, dy, s.w, s.h);
   }
 
-  //  路：每格路磚本身兩邊都有草邊，兩格並排就會變兩條路中間夾條草 → 改成
-  //  先鋪路面，再只喺「隔籬唔係路」嗰邊補草邊（邊條直接由原本路磚切出嚟）
-  const ROAD = 'hvx4567';
-  const isRoad = (x, y) => ROAD.includes((GROUND[y] || '')[x] || '.');
-  function drawRoadCell(x, y, px, py) {
-    ctx.fillStyle = '#EEB2AF'; ctx.fillRect(px, py, T, T);
-    const hi = img['T1_r3c2'], vi = img['T1_r3c1'];
-    if (!hi || !hi.complete || !vi || !vi.complete) return;
-    const E = 14;                                        // 草＋路邊線嘅厚度（路磚入面量出嚟）
-    if (!isRoad(x, y - 1)) ctx.drawImage(hi, 0, 0, T, E, px, py, T, E);
-    if (!isRoad(x, y + 1)) ctx.drawImage(hi, 0, T - E, T, E, px, py + T - E, T, E);
-    if (!isRoad(x - 1, y)) ctx.drawImage(vi, 0, 0, E, T, px, py, E, T);
-    if (!isRoad(x + 1, y)) ctx.drawImage(vi, T - E, 0, E, T, px + T - E, py, E, T);
-    // 內角：直路同橫路交界嗰粒草角
-    const gk = img['T1_r1c1'];
-    [[-1, -1, 0, 0], [1, -1, T - E, 0], [-1, 1, 0, T - E], [1, 1, T - E, T - E]].forEach(([dx, dy, ox, oy]) => {
-      if (isRoad(x + dx, y) && isRoad(x, y + dy) && !isRoad(x + dx, y + dy) && gk && gk.complete)
-        ctx.drawImage(gk, ox, oy, E - 2, E - 2, px + ox + (dx > 0 ? 2 : 0), py + oy + (dy > 0 ? 2 : 0), E - 2, E - 2);
-    });
-  }
   function drawGround(camX, camY) {
     const x0 = Math.max(0, Math.floor(camX / T)), x1 = Math.min(COLS - 1, Math.ceil((camX + VW) / T));
     const y0 = Math.max(0, Math.floor(camY / T)), y1 = Math.min(ROWS - 1, Math.ceil((camY + VH) / T));
@@ -1719,16 +1852,6 @@
         const gs = window.SPR[gk], gi = img[gk];
         if (gs && gi.complete) ctx.drawImage(gi, px, py, gs.w, gs.h);
         if (ch === '.') continue;
-        if (ROAD.includes(ch)) { drawRoadCell(x, y, px, py); continue; }
-        if (ch === 'b') {                               // 門口磚：磚只喺磚圖下半（26–47 行）→ 疊滿成格，上下兩格連成一條路
-          const bi = img['T3_r4c4'];
-          if (bi && bi.complete) {
-            ctx.drawImage(bi, 0, 26, T, 22, px, py, T, 22);
-            ctx.drawImage(bi, 0, 26, T, 22, px, py + 22, T, 22);
-            ctx.drawImage(bi, 0, 26, T, 4, px, py + 44, T, 4);
-          }
-          continue;
-        }
         const g = G[ch];
         if (!g) continue;
         const key = g[0], rot = g[1] || 0;
@@ -1789,28 +1912,19 @@
       } else drawPlayerScaled(P.x, P.y, k);
     }
     // room name tag + exit hint
-    ctx.font = FONT(19); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const rw = ctx.measureText(W.room.name).width + 36;
-    roundRect(VW / 2 - rw / 2, 10, rw, 34, 17, 'rgba(255,246,250,0.9)', '#4A2E38', 3);
-    ctx.fillStyle = '#4A2E38';
-    ctx.fillText(W.room.name, VW / 2, 28);
-    if (!DLG.on && !MENU.open) {                  // 出口提示：icon 列下面一粒細 pill
-      const pu = Math.sin(performance.now() / 300) * 2;
-      ctx.font = FONT(15);
-      const ew = ctx.measureText('▼ 行到最底就出去').width + 28;
-      roundRect(VW / 2 - ew / 2, 906 + pu, ew, 28, 14, 'rgba(74,46,56,0.72)', null);
-      ctx.fillStyle = '#FFF3F8';
-      ctx.fillText('▼ 行到最底就出去', VW / 2, 921 + pu);
-    }
-    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.font = FONT(20); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillStyle = 'rgba(74,46,56,0.85)';
+    ctx.fillText(W.room.name, VW / 2, 16);
+    const pu = Math.sin(performance.now() / 300) * 4;
+    ctx.fillStyle = 'rgba(255,243,248,0.40)';
+    ctx.fillRect(VW / 2 - 120, VH - 22, 240, 22);
+    ctx.font = FONT(17); ctx.fillStyle = 'rgba(74,46,56,0.85)';
+    ctx.fillText('▼ 行到最底就出去', VW / 2, VH - 52 + pu);
+    ctx.textAlign = 'left';
   }
 
   function drawScene(camX, camY) {
     drawGround(camX, camY);
-    for (const h of HOUSES) {                          // 屋外牆：一間屋一張圖，喺所有物件之前畫
-      const hx = h.x0 * T - camX, hy = h.y0 * T - camY;
-      if (hx > -4 * T && hx < VW && hy > -3 * T && hy < VH) drawSprite(h.sk, hx, hy);
-    }
     const x0 = Math.max(0, Math.floor(camX / T) - 1), x1 = Math.min(COLS - 1, Math.ceil((camX + VW) / T));
     const y0 = Math.max(0, Math.floor(camY / T) - 1), y1 = Math.min(ROWS - 1, Math.ceil((camY + VH) / T) + 1);
     const list = [];
@@ -1852,7 +1966,7 @@
 
   // ---------------------------------------------------------------- loop
   let debug = /debug=1/.test(location.search);
-  addEventListener('keydown', e => { if (e.key === 'D' && !/^(INPUT|TEXTAREA)$/.test(e.target.tagName || '')) debug = !debug; });
+  addEventListener('keydown', e => { if (e.key === 'D') debug = !debug; });
   let last = 0, acc = 0;
   function frame(ts) {
     if (!last) last = ts;
@@ -1887,6 +2001,7 @@
     drawConfirm();
     if (DLG.on) drawDialog();
     if (CREDITS.on) drawCredits();
+    if (MERGE.on) drawMerge();
     drawPhoto();
     drawCast();
     drawCeleb();                                  // 煙花／彩帶蓋喺 credits 上面（喜慶）
@@ -1894,9 +2009,8 @@
     if (W.flash > 0) {                       // 入／出舖頭嘅白閃
       ctx.fillStyle = 'rgba(255,250,252,' + Math.min(0.9, W.flash * 2).toFixed(3) + ')';
       ctx.fillRect(0, 0, VW, VH);
-      W.flash = Math.max(0, W.flash - dt * 2.4);      // 按時間淡走（唔再靠 frame 數）
+      W.flash = Math.max(0, W.flash - 0.04);
     }
-    document.body.classList.toggle('in-end', CREDITS.on || PHOTO.on || CAST.on);
     requestAnimationFrame(frame);
   }
 
@@ -1930,7 +2044,9 @@
     if (q.get('flags')) q.get('flags').split(',').forEach(f => { STATE.flags[f] = 1; });
     if (q.get('cut')) { CUT.on = true; CUT.phase = q.get('cut'); CUT.t = +(q.get('ct') || 0); NIGHT.a = +(q.get('night') || 0); }
     if (q.get('room')) enterRoom(q.get('room'));
-    if (q.get('giftui')) showGift();
+    if (q.get('giftui')) openGiftUI('msg');
+    if (q.get('guess')) openGiftUI('guess');
+    if (q.get('merge')) { MERGE.on = true; MERGE.demo = 1; MERGE.t = parseFloat(q.get('merge')) || 5.0; }
     if (q.get('zoomtest')) transition(null, { zoom: { x: +(q.get('zx') || 14), y: +(q.get('zy') || 11), k: 1.95 },
       card: q.get('zoomtest'), color: '#FFF6FA', out: 0.1, hold: 30, inn: 0.1, thenAt: 'in' });
     if (q.get('logocard')) transition(null, { logo: true, sub: q.get('logocard'), card: null,
