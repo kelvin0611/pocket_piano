@@ -303,11 +303,16 @@
     }
     advance();
   });
+  function inField(e) {                       // 打字中：唔好搶 a／b／方向鍵
+    const t = e.target;
+    return !!(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable));
+  }
   addEventListener('keydown', e => {
+    if (inField(e)) return;
     if (e.key === ' ' || e.key === 'Enter' || e.key === 'z' || e.key === 'Z') { pressA(); e.preventDefault(); }
   });
-  addEventListener('keydown', e => { const k = KEYMAP[e.key]; if (k) { press(k, 1); e.preventDefault(); } });
-  addEventListener('keyup', e => { const k = KEYMAP[e.key]; if (k) press(k, 0); });
+  addEventListener('keydown', e => { if (inField(e)) return; const k = KEYMAP[e.key]; if (k) { press(k, 1); e.preventDefault(); } });
+  addEventListener('keyup', e => { if (inField(e)) return; const k = KEYMAP[e.key]; if (k) press(k, 0); });
   // 畫布點一下：封面／對白／字幕＝撳 A（行路時唔會誤觸）
   const cvEl = document.querySelector('canvas');
   if (cvEl) cvEl.addEventListener('pointerdown', e => {
@@ -700,12 +705,13 @@
                C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.00, A3: 220.00, B3: 246.94,
                C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.00, A4: 440.00, B4: 493.88,
                C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880.00, C6: 1046.50 };
-  // 8 小節旋律（. = 休止, - = 延音）；每小節 8 個八分音符
-  const MEL = ('G5 . E5 . C5 - - - | A4 . C5 . E5 - - - | F5 . E5 . D5 . C5 . | D5 - G4 . G4 - - - |' +
-               ' E5 . G5 . E5 - - - | D5 . C5 . A4 - - - | C5 . D5 . F5 . E5 . | D5 - - - C5 - - -')
-              .split(/\s+/).filter(t => t !== '|');
-  const CHORD = [['C3', 'C4', 'E4', 'G4'], ['A2', 'A3', 'C4', 'E4'],
-                 ['F2', 'F3', 'A3', 'C4'], ['G2', 'G3', 'B3', 'D4']];
+  // 🎂 Happy Birthday to You（3/4 拍，music-box 感）；[音名, 拍數]
+  const HB = [
+    ['G4', .5], ['G4', .5], ['A4', 1], ['G4', 1], ['C5', 1], ['B4', 2],
+    ['G4', .5], ['G4', .5], ['A4', 1], ['G4', 1], ['D5', 1], ['C5', 2],
+    ['G4', .5], ['G4', .5], ['G5', 1], ['E5', 1], ['C5', 1], ['D5', 1], ['C5', 2],
+    ['F5', .5], ['F5', .5], ['E5', 1], ['C5', 1], ['D5', 1], ['C5', 3],
+  ];
   // 角色「外星話」：每個角色唔同音高，打字每 3 個字出一聲
   const VOICE = { rabbit: 1080, bear: 470, lobster: 640, cat: 830,
                   pig: 720, pig2: 720,                 // 傻豬兩個版本＝同一把聲
@@ -722,7 +728,7 @@
       beep(base * (0.90 + Math.random() * 0.22), 0.026, 'square', 0.032);
     VOICE_N = n;
   }
-  const BGM = { playing: false, step: 0, next: 0, timer: null, master: null, eighth: 60 / 104 / 2 };
+  const BGM = { playing: false, step: 0, next: 0, timer: null, master: null, eighth: 60 / 104 / 2, beat: 0.40, song: null };
   function bgmNote(freq, t, dur, type, vol) {
     const o = AC.createOscillator(), g = AC.createGain();
     o.type = type; o.frequency.value = freq;
@@ -734,20 +740,24 @@
   }
   function bgmSchedule() {
     if (!BGM.playing || !AC) return;
-    const e = BGM.eighth;
-    while (BGM.next < AC.currentTime + 0.3) {
-      const i = BGM.step % 64, bar = Math.floor(i / 8), beat = i % 8, t = BGM.next;
-      const tok = MEL[i] || '.';
-      if (tok !== '.' && tok !== '-' && NT[tok]) {
-        const len = (MEL[i + 1] === '-') ? e * 1.9 : e * 0.95;
-        bgmNote(NT[tok], t, len, 'square', 0.030);          // 主旋律
+    if (!BGM.song) {                                        // 砌一次時間表
+      const L = []; let t = 0;
+      for (const [n, b] of HB) {
+        const d = b * BGM.beat;
+        L.push([NT[n], t, d * 0.88, 'square', 0.028]);                    // 主旋律
+        L.push([NT[n] * 2, t, d * 0.5, 'sine', 0.009]);                    // 高八度鐘聲
+        if (b >= 1) L.push([NT[n] / 2, t, d * 0.8, 'triangle', 0.016]);    // 低八度輕墊
+        t += d;
       }
-      const ch = CHORD[bar % 4];
-      if (beat === 0 || beat === 4) bgmNote(NT[ch[0]], t, e * 3.4, 'triangle', 0.055);   // 低音
-      const arp = ch[2 + (beat % 2)];
-      if (NT[arp]) bgmNote(NT[arp], t, e * 1.2, 'sine', 0.014);                          // 琶音
-      BGM.next += e; BGM.step++;
+      BGM.song = { L: L, total: t + 2.4, i: 0, base: AC.currentTime + 0.15 };
     }
+    const S = BGM.song;
+    while (S.i < S.L.length && S.base + S.L[S.i][1] < AC.currentTime + 0.7) {
+      const q = S.L[S.i];
+      bgmNote(q[0], S.base + q[1], q[2], q[3], q[4]);
+      S.i++;
+    }
+    if (S.i >= S.L.length && S.base + S.total < AC.currentTime + 0.7) { S.base += S.total; S.i = 0; }
   }
   function bgmStart() {
     if (!OPT.bgm || BGM.playing) return;
@@ -755,7 +765,7 @@
       AC = AC || new (window.AudioContext || window.webkitAudioContext)();
       if (AC.state === 'suspended') AC.resume();
       if (!BGM.master) { BGM.master = AC.createGain(); BGM.master.gain.value = 0.85; BGM.master.connect(AC.destination); }
-      BGM.playing = true; BGM.next = AC.currentTime + 0.1; BGM.step = 0;
+      BGM.playing = true; BGM.next = AC.currentTime + 0.1; BGM.step = 0; BGM.song = null;
       if (BGM.timer) clearInterval(BGM.timer);
       BGM.timer = setInterval(bgmSchedule, 60);
     } catch (err) {}
@@ -1285,9 +1295,9 @@
     if (TITLE.phase === 'egg') {
       if (TITLE.t < 3.2) { TITLE.t = 3.2; return; }             // 跳去爆蛋
       if (TITLE.t < 4.4) { TITLE.t = 4.4; return; }
-      goName();
-      return;
+      TITLE.phase = 'white'; TITLE.t = 0; return;          // 爆完 → 全白
     }
+    if (TITLE.phase === 'white') { goName(); return; }     // 撳 A 先入改名
     if (TITLE.phase === 'date') {
       beep(1318, 0.1);
       transition(() => {
@@ -1299,7 +1309,7 @@
   }
   function titleStep(dt) {
     TITLE.t += dt;
-    if (TITLE.phase === 'egg' && TITLE.t > 99) goName();   // 唔自動，等玩家撳 A
+    if (TITLE.phase === 'egg' && TITLE.t > 4.6) { TITLE.phase = 'white'; TITLE.t = 0; beep(1046, 0.12); }
   }
   const startBtn = document.getElementById('startBtn');
   if (startBtn) startBtn.addEventListener('click', () => {
@@ -1357,6 +1367,18 @@
         ctx.fillText('撳 A 繼續', VW / 2, 620);
       }
       ctx.textAlign = 'left';
+      return;
+    }
+    if (TITLE.phase === 'white') {                          // 爆蛋之後：全白，等撳 A
+      ctx.fillStyle = '#FFFDFE'; ctx.fillRect(0, 0, VW, VH);
+      const wt = performance.now() / 1000;
+      if (wt % 1.6 > 0.5) {
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = FONT(17); ctx.fillStyle = 'rgba(74,46,56,0.5)';
+        ctx.fillText('撳 A', VW / 2, 700);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      }
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top';
       return;
     }
     if (TITLE.phase === 'egg') {
@@ -1856,9 +1878,15 @@
         const px = x * T - camX, py = y * T - camY;
         // 1) always lay a grass base - some ground sprites (brick step, flower bed)
         //    are not full-bleed, so without this their transparent part shows black
-        const gk = GRASS[(x * 7 + y * 13) % GRASS.length];
+        const gh = ((x * 374761393 + y * 668265263) ^ 0x5bf03635) >>> 0;   // 真 2D 雜湊
+        const gk = GRASS[gh % GRASS.length];
         const gs = window.SPR[gk], gi = img[gk];
-        if (gs && gi.complete) ctx.drawImage(gi, px, py, gs.w, gs.h);
+        if (gs && gi.complete) {
+          if ((gh >> 5) & 1) {                                    // 一半左右鏡像 → 唔會見格仔
+            ctx.save(); ctx.translate(px + gs.w, py); ctx.scale(-1, 1);
+            ctx.drawImage(gi, 0, 0, gs.w, gs.h); ctx.restore();
+          } else ctx.drawImage(gi, px, py, gs.w, gs.h);
+        }
         if (ch === '.') continue;
         const g = G[ch];
         if (!g) continue;
