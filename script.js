@@ -25,10 +25,11 @@ window.SCRIPT = {
     /* 朋友（一齊去大鵬所城）——冇頭像，只有名 */
     friend_andy:    { name: 'andy',    face: 'av_andy' },
     friend_nichole: { name: 'nichole', face: 'av_nichole' },
-    friend_kafai:   { name: 'kafai',   face: null },            // 未有相 → 純文字
+    friend_kafai:   { name: 'kafai',   face: 'av_kafai' },
     friend_hiulam:  { name: 'hiulam',  face: 'av_hiulam' },
-    friend_lulu:    { name: 'lulu',    face: null },            // 未有相 → 純文字
+    friend_lulu:    { name: 'lulu',    face: 'av_lulu' },
     friend_waichun: { name: 'waichun', face: 'av_waichun' },
+    friend_ruby:    { name: 'Ruby',    face: 'av_ruby' },
     chat_me:        { name: '我',      face: 'av_kaka' },       // 佢自己
     chat_swineb:    { name: '傻豬b',   face: 'av_swineb' },
   },
@@ -264,6 +265,7 @@ window.SCRIPT = {
       { who: 'friend_hiulam',  text: '成日半夜喺房度「啪、啪、啪」…唔好諗歪呀，佢係喺房。' },
       { who: 'friend_lulu',    text: '佢話要帶得出街都得㗎。' },
       { who: 'friend_waichun', text: '我唔知係咩，但我知佢好緊張呢份嘢。' },
+      { who: 'friend_ruby', text: '我記得…佢好似為咗揀樣嘢，問過我三次「呢個色得唔得」。' },
       { who: 'chat_swineb', text: '我淨係負責出錢同企喺度笑。' },
       { who: 'chat_me', text: '（…點解我覺得我係知道嘅？）' },
       { end: true },
