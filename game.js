@@ -1654,9 +1654,17 @@
       }
       const prog = Math.max(0, Math.min(1, (t - 1.25) / 2.3));
       const kw = 470, kx = (VW - kw) / 2;
-      ctx.globalAlpha = Math.min(1, (t - 1.0) / 0.35);
+      const fade = Math.max(0, Math.min(1, (t - 3.4) / 0.9));       // 3.4s 後淡入真鍵盤圖
+      ctx.globalAlpha = Math.min(1, (t - 1.0) / 0.35) * (1 - fade * 0.92);
       drawKeyboard(kx, 336, kw, prog);
       ctx.globalAlpha = 1;
+      const kbImg = img['keyboard'], kbS = window.SPR['keyboard'];
+      if (fade > 0 && kbImg && kbImg.complete && kbImg.naturalWidth && kbS) {
+        const w2 = Math.min(VW - 24, kbS.w), h2 = kbS.h * (w2 / kbS.w);
+        ctx.globalAlpha = fade;
+        ctx.drawImage(kbImg, (VW - w2) / 2, 336 + (kw * 0.44 - h2) / 2, w2, h2);
+        ctx.globalAlpha = 1;
+      }
       if (t > 3.5) {                                          // 打字光左右掃
         const idx = Math.floor((t - 3.5) * 7) % 12;
         const cw2 = (kw - 32) / 12, ch2 = (kw * 0.44 - 32) / 4;

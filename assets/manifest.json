@@ -6019,6 +6019,126 @@
    "group": "portrait",
    "seamless": false,
    "batch": 5
+  },
+  "keyboard": {
+   "file": "ui/keyboard.png",
+   "size": [
+    940,
+    382
+   ],
+   "sprite_size": [
+    940,
+    382
+   ],
+   "anchor": "center",
+   "group": "ui",
+   "seamless": false,
+   "batch": 6
+  },
+  "hint_jersey": {
+   "file": "ui/hint_jersey.png",
+   "size": [
+    447,
+    404
+   ],
+   "sprite_size": [
+    447,
+    404
+   ],
+   "anchor": "center",
+   "group": "ui",
+   "seamless": false,
+   "batch": 6
+  },
+  "hint_sticker": {
+   "file": "ui/hint_sticker.png",
+   "size": [
+    357,
+    404
+   ],
+   "sprite_size": [
+    357,
+    404
+   ],
+   "anchor": "center",
+   "group": "ui",
+   "seamless": false,
+   "batch": 6
+  },
+  "hint_keycap": {
+   "file": "ui/hint_keycap.png",
+   "size": [
+    329,
+    333
+   ],
+   "sprite_size": [
+    329,
+    333
+   ],
+   "anchor": "center",
+   "group": "ui",
+   "seamless": false,
+   "batch": 6
+  },
+  "hint_ball": {
+   "file": "ui/hint_ball.png",
+   "size": [
+    372,
+    386
+   ],
+   "sprite_size": [
+    372,
+    386
+   ],
+   "anchor": "center",
+   "group": "ui",
+   "seamless": false,
+   "batch": 6
+  },
+  "hint_crow": {
+   "file": "ui/hint_crow.png",
+   "size": [
+    373,
+    337
+   ],
+   "sprite_size": [
+    373,
+    337
+   ],
+   "anchor": "center",
+   "group": "ui",
+   "seamless": false,
+   "batch": 6
+  },
+  "hint_banner9": {
+   "file": "ui/hint_banner9.png",
+   "size": [
+    364,
+    311
+   ],
+   "sprite_size": [
+    364,
+    311
+   ],
+   "anchor": "center",
+   "group": "ui",
+   "seamless": false,
+   "batch": 6
+  },
+  "hint_heart": {
+   "file": "ui/hint_heart.png",
+   "size": [
+    493,
+    552
+   ],
+   "sprite_size": [
+    493,
+    552
+   ],
+   "anchor": "center",
+   "group": "ui",
+   "seamless": false,
+   "batch": 6
   }
  },
  "backgrounds": {
@@ -6553,6 +6673,16 @@
    "pianow_r4c2",
    "pianow_r4c3",
    "pianow_r4c4"
+  ],
+  "ui": [
+   "hint_ball",
+   "hint_banner9",
+   "hint_crow",
+   "hint_heart",
+   "hint_jersey",
+   "hint_keycap",
+   "hint_sticker",
+   "keyboard"
   ]
  }
 }
