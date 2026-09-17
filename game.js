@@ -161,7 +161,7 @@
             npc: { id: 'cat', sk: 'cat_r1c1', x: 286, y: 644, scene: 'cat_act2', done: 'cat_done' } },
     dream: { name: '夢境', bg: 'bg_dream', auto: true, card: null, sub: null,
              npc: { id: 'pig', sk: 'pig_r1c1', x: 270, y: 556, scene: 'pig_act3', done: 'pig_done' } },
-    party: { name: '生日會場', bg: 'bg_party', auto: true, card: '第三幕・生日會', sub: '今晚仲有自助餐',
+    party: { name: '生日會場', bg: 'bg_town', auto: true, card: '第三幕・生日會', sub: '所城嘅燈籠亮起',
              npc: { id: 'penguin', sk: 'penguin_r1c1', x: 158, y: 700, scene: 'party_end', done: 'act3_done' },
              extra: [{ sk: 'pigb_r1c1', x: 392, y: 706 }] },
   };

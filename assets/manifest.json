@@ -6360,6 +6360,20 @@
     1080,
     1935
    ]
+  },
+  "bg_town": {
+   "file": "bg/bg_town.jpg",
+   "size": [
+    780,
+    1398
+   ]
+  },
+  "bg_group": {
+   "file": "bg/bg_group.jpg",
+   "size": [
+    780,
+    1398
+   ]
   }
  },
  "groups": {

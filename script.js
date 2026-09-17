@@ -307,7 +307,7 @@ window.SCRIPT = {
     /* ---------------- Act 3：生日會 ---------------- */
     party_end: [
       { celebrate: true },
-      { who: 'penguin', face: 'happy', text: '歡迎嚟到生日會！蛋糕、自助餐、禮物都準備好～' },
+      { who: 'penguin', face: 'happy', text: '歡迎嚟到生日會！蛋糕同禮物都準備好～' },
       { who: 'pig2', face: 'happy', text: '{name}，我哋等妳好耐喇。' },
       { cutin: 'bg_cake' },
       { pose: 'pianob_r1c3' },
